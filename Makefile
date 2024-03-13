@@ -1,39 +1,25 @@
-.PHONY: setup docker-build laravel-install app-install update-env key-generate migrate down
+setup: build laravel-setup key-generate migrate
 
-# Définition de la commande par défaut
-setup: docker-build laravel-install app-install update-env key-generate migrate
+build:
+	docker-compose down -v
+	docker-compose up -d --build
 
-# Construction des images Docker
-docker-build:
-	docker compose down -v && docker-compose up -d --build
+laravel-setup: laravel-install update-env
 
-# Installation de Laravel via Composer
 laravel-install:
-	if [ ! -d "app" ]; then \
-		mkdir -p app && cd app && composer create-project --prefer-dist laravel/laravel . ; \
-	fi
-
-# Installation des dépendances de Laravel (Utilisable après la première installation si nécessaire)
-app-install:
-	cd app && composer install
+	[ -d "laravel-project" ] || (mkdir -p laravel-project && cd laravel-project && composer create-project --prefer-dist laravel/laravel . && cd ..)
+	cd laravel-project && composer install
 
 update-env:
-	cp .env.example app/.env
+	cp .env.example laravel-project/.env
 
-# Génération de la clé d'application Laravel
 key-generate:
 	docker-compose exec app php artisan key:generate
 
-# Migration de la base de données
 migrate:
 	docker-compose exec app php artisan migrate
 
-# Arrêt des conteneurs Docker
 down:
 	docker-compose down -v
 
-reload:
-	docker-compose down -v && docker-compose up -d
-
-build:
-	docker-compose down -v && docker-compose up -d --build
+reload: down build
